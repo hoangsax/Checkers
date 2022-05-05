@@ -1,3 +1,4 @@
+from copy import deepcopy
 import pygame
 
 #------------------------CONSTANSTS----------------------------------
@@ -39,7 +40,7 @@ class Piece:
         self.king = True
 
 class BoardGame:
-    def __init__(self):
+    def __init__(self,first_color_turn):
         self.board = [[0,Piece(0,1,RED),0,Piece(0,3,RED),0,Piece(0,5,RED),0,Piece(0,7,RED)],
                       [Piece(1,0,RED),0,Piece(1,2,RED),0,Piece(1,4,RED),0,Piece(1,6,RED),0],
                       [0,Piece(2,1,RED),0,Piece(2,3,RED),0,Piece(2,5,RED),0,Piece(2,7,RED)],
@@ -50,6 +51,9 @@ class BoardGame:
                       [Piece(7,0,BROWN),0,Piece(7,2,BROWN),0,Piece(7,4,BROWN),0,Piece(7,6,BROWN),0]]
         self.red_piece = 12
         self.brown_piece = 12
+        self.red_king =0
+        self.brown_king = 0
+        self.first_turn = first_color_turn
     def draw_board(self,screen,color):
         for i in range(0,ROWS,2):
             for j in range(1,COLUMNS,2):
@@ -161,18 +165,38 @@ class BoardGame:
             right += 1
         
         return moves
-
+    def winner(self):
+        if self.red_piece ==0:
+            return BROWN
+        elif self.brown_piece == 0:
+            return RED
+        else:
+            return None
+    def score(self):
+        return self.brown_piece - self.red_piece
+    def all_pieces(self,color):
+        all_pieces = []
+        for r in self.board:
+            for piece in r:
+                if piece == 0:
+                    continue
+                if piece.color == color:
+                    all_pieces += [piece]      
+        return all_pieces
+        
 class Checkers:
-    def __init__(self,screen,first_color_turn):
-        self.board = BoardGame()
+    def __init__(self,screen,first_color_turn,level):
+        self.board = BoardGame(first_color_turn)
         self.turn = first_color_turn
         self.screen = screen
         self.piece_selected = None
         self.valid_move = {}
+        self.level = level
     def update(self):
         self.board.draw_board(self.screen,BLACK)
         if self.piece_selected:
-            self.draw_piece_selected(self.piece_selected)
+            if self.board.get_piece(self.piece_selected.col,self.piece_selected.row) !=0:
+                self.draw_piece_selected(self.piece_selected)
         self.draw_valid_moves(self.valid_move)
         pygame.display.update()
     def reset(self,first_color_turn):
@@ -225,6 +249,46 @@ class Checkers:
             self.turn = BROWN
         else:
             self.turn = RED
+    def winner(self):
+        return self.board.winner()
+    def ai_move(self,board):
+        self.board = board
+        self.change_turn()
+
+def get_new_board(piece,board, move,skipped):
+    row = move[0]
+    col = move[1]
+    board.move_piece(piece,col,row)
+    if skipped:
+        board.remove_piece(skipped)
+    return board
+def get_all_board(board,color):
+    boards = []
+    for piece in board.all_pieces(color):
+        valid_moves = board.get_valid_moves(piece)  #{move: [skipped]}
+        for move, skipped in valid_moves.items():
+            temp_board = deepcopy(board)
+            temp_piece = temp_board.get_piece(piece.col,piece.row)
+            new_board = get_new_board(temp_piece,temp_board,move,skipped)
+            boards += [new_board]
+    return boards
+def minimaxAlgorithm(currBoard, level,color):
+    best_score = -999
+    best_board = None
+    if level ==0 or currBoard.winner() != None:
+        return currBoard.score(), currBoard
+    for board in get_all_board(currBoard,color):
+        if color == RED:
+            change_color = BROWN
+        else:
+            change_color = RED
+        new_value = - minimaxAlgorithm(board,level - 1,change_color)[0]
+        if new_value > best_score:
+            best_score = new_value
+            best_board = board
+    return best_score, best_board
+
+
 def get_piece_from_mouse(pos):
         x , y = pos
         row = y // PIECE_SIZE
@@ -243,9 +307,9 @@ def show_choice():
             break
     print("=================================")
     while True:
-        print("Chọn màu đi trước:")
-        print("1. Nâu")
-        print("2. Đỏ")
+        print("Chọn nước đi trước hay sau:")
+        print("1. Nâu (đi trước)")
+        print("2. Đỏ (đi sau)")
         print("3. Thoát")
         first_color = int(input("Chọn số: "))
         if first_color == 3:
@@ -270,22 +334,39 @@ def show_choice():
             break
     return mode,first_color,level
 def main():
-    mode ,first_color, level=show_choice()
+    mode ,choose_color, level=show_choice()
     screen = pygame.display.set_mode((800,800))
     screen.fill(WHITE)
     pygame.display.set_caption("Checkers")
-    game = Checkers(screen,first_color)
+    game = Checkers(screen,BROWN,level)
     run = True
     clock = pygame.time.Clock()
     while run:
         clock.tick(60)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        if mode == 1:
+            if choose_color == BROWN:
+                if game.turn == RED:
+                    new_board = minimaxAlgorithm(game.board,level,RED)[1]
+                    game.ai_move(new_board)
+            else:
+                if game.turn == BROWN:
+                    new_board = minimaxAlgorithm(game.board,level,BROWN)[1]
+                    game.ai_move(new_board)
+            if game.winner() != None:
+                if game.winner() == RED:
+                    print("RED WINNER")
+                else:
+                    print("BROWN WINNER")
                 run = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
-                col,row = get_piece_from_mouse(pos)
-                game.select_square_or_piece(col,row)
-        game.update()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = pygame.mouse.get_pos()
+                    col,row = get_piece_from_mouse(pos)
+                    game.select_square_or_piece(col,row)
+            game.update()
+        elif mode == 2:
+            pass
     pygame.quit()
 main()
