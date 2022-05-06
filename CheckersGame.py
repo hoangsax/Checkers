@@ -89,13 +89,13 @@ class BoardGame:
         right = piece.col + 1
         row = piece.row
         if piece.king:
-            moves.update(self.traverse_left(row -1, max(row-3, -1), -1, piece.color, left))
-            moves.update(self.traverse_right(row -1, max(row-3, -1), -1, piece.color, right))
+            moves.update(self.traverse_left(row -1, max(row-3, 0), -1, piece.color, left))
+            moves.update(self.traverse_right(row -1, max(row-3, 0), -1, piece.color, right))
             moves.update(self.traverse_left(row +1, min(row+3, ROWS), 1, piece.color, left))
             moves.update(self.traverse_right(row +1, min(row+3, ROWS), 1, piece.color, right))
         if piece.color == BROWN:
-            moves.update(self.traverse_left(row -1, max(row-3, -1), -1, piece.color, left))
-            moves.update(self.traverse_right(row -1, max(row-3, -1), -1, piece.color, right))
+            moves.update(self.traverse_left(row -1, max(row-3, 0), -1, piece.color, left))
+            moves.update(self.traverse_right(row -1, max(row-3, 0), -1, piece.color, right))
         if piece.color == RED:
             moves.update(self.traverse_left(row +1, min(row+3, ROWS), 1, piece.color, left))
             moves.update(self.traverse_right(row +1, min(row+3, ROWS), 1, piece.color, right))
@@ -122,8 +122,8 @@ class BoardGame:
                         row = max(r-3, 0)
                     else:
                         row = min(r+3, ROWS)
-                    moves.update(self.traverse_left(r+step, row, step, color, left-1,skipped=last))
-                    moves.update(self.traverse_right(r+step, row, step, color, left+1,skipped=last))
+                    moves.update(self.traverse_left(r+step, row, step, color, left-1,skipped=skipped +last))
+                    moves.update(self.traverse_right(r+step, row, step, color, left+1,skipped=skipped +last))
                 break
             elif current.color == color:
                 break
@@ -154,8 +154,8 @@ class BoardGame:
                         row = max(r-3, 0)
                     else:
                         row = min(r+3, ROWS)
-                    moves.update(self.traverse_left(r+step, row, step, color, right-1,skipped=last))
-                    moves.update(self.traverse_right(r+step, row, step, color, right+1,skipped=last))
+                    moves.update(self.traverse_left(r+step, row, step, color, right-1,skipped=skipped +last))
+                    moves.update(self.traverse_right(r+step, row, step, color, right+1,skipped=skipped + last))
                 break
             elif current.color == color:
                 break
@@ -346,12 +346,14 @@ def main():
         if mode == 1:
             if choose_color == BROWN:
                 if game.turn == RED:
-                    new_board = minimaxAlgorithm(game.board,level,RED)[1]
+                    new_board = minimaxAlgorithm(game.board,3,RED)[1]
                     game.ai_move(new_board)
+                    
             else:
                 if game.turn == BROWN:
-                    new_board = minimaxAlgorithm(game.board,level,BROWN)[1]
+                    new_board = minimaxAlgorithm(game.board,3,BROWN)[1]
                     game.ai_move(new_board)
+
             if game.winner() != None:
                 if game.winner() == RED:
                     print("RED WINNER")
