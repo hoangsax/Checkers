@@ -276,7 +276,10 @@ def minimaxAlgorithm(currBoard, level,color):
     best_score = -999
     best_board = None
     if level ==0 or currBoard.winner() != None:
-        return currBoard.score(), currBoard
+        if color == BROWN:
+            return currBoard.score(), currBoard
+        else:
+            return - currBoard.score(), currBoard
     for board in get_all_board(currBoard,color):
         if color == RED:
             change_color = BROWN
