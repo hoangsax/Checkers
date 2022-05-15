@@ -173,7 +173,7 @@ class BoardGame:
         else:
             return None
     def score(self):
-        return self.brown_piece - self.red_piece
+        return self.brown_piece + self.brown_king - self.red_piece - self.red_king
     def all_pieces(self,color):
         all_pieces = []
         for r in self.board:
