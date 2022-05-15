@@ -299,17 +299,6 @@ def get_piece_from_mouse(pos):
         return col,row
 def show_choice():
     while True:
-        print("Chọn chế độ chơi:")
-        print("1. Người vs Máy")
-        print("2. Máy Vs Máy ngẫu nhiên")
-        print("3. Thoát")
-        mode = int(input("Chọn số: "))
-        if mode == 3:
-            exit()
-        if mode == 1 or mode == 2:
-            break
-    print("=================================")
-    while True:
         print("Chọn nước đi trước hay sau:")
         print("1. Nâu (đi trước)")
         print("2. Đỏ (đi sau)")
@@ -335,9 +324,9 @@ def show_choice():
             exit()
         if level == 1 or level == 2 or level == 3:
             break
-    return mode,first_color,level
+    return first_color,level
 def main():
-    mode ,choose_color, level=show_choice()
+    choose_color, level=show_choice()
     screen = pygame.display.set_mode((800,800))
     screen.fill(WHITE)
     pygame.display.set_caption("Checkers")
@@ -346,32 +335,28 @@ def main():
     clock = pygame.time.Clock()
     while run:
         clock.tick(60)
-        if mode == 1:
-            if choose_color == BROWN:
-                if game.turn == RED:
-                    new_board = minimaxAlgorithm(game.board,3,RED)[1]
-                    game.ai_move(new_board)
-                    
-            else:
-                if game.turn == BROWN:
-                    new_board = minimaxAlgorithm(game.board,3,BROWN)[1]
-                    game.ai_move(new_board)
+        if choose_color == BROWN:
+            if game.turn == RED:
+                new_board = minimaxAlgorithm(game.board,level,RED)[1]
+                game.ai_move(new_board)                    
+        else:
+            if game.turn == BROWN:
+                new_board = minimaxAlgorithm(game.board,level,BROWN)[1]
+                game.ai_move(new_board)
 
-            if game.winner() != None:
-                if game.winner() == RED:
-                    print("RED WINNER")
-                else:
-                    print("BROWN WINNER")
+        if game.winner() != None:
+            if game.winner() == RED:
+                print("RED WINNER")
+            else:
+                print("BROWN WINNER")
+            run = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 run = False
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-                    col,row = get_piece_from_mouse(pos)
-                    game.select_square_or_piece(col,row)
-            game.update()
-        elif mode == 2:
-            pass
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                col,row = get_piece_from_mouse(pos)
+                game.select_square_or_piece(col,row)
+        game.update()
     pygame.quit()
 main()
