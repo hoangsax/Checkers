@@ -119,7 +119,7 @@ class BoardGame:
                 
                 if last:
                     if step == -1:
-                        row = max(r-3, 0)
+                        row = max(r-3, -1)
                     else:
                         row = min(r+3, ROWS)
                     moves.update(self.traverse_left(r+step, row, step, color, left-1,skipped=skipped +last))
@@ -151,7 +151,7 @@ class BoardGame:
                 
                 if last:
                     if step == -1:
-                        row = max(r-3, 0)
+                        row = max(r-3, -1)
                     else:
                         row = min(r+3, ROWS)
                     moves.update(self.traverse_left(r+step, row, step, color, right-1,skipped=skipped +last))
