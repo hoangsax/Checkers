@@ -119,7 +119,7 @@ class BoardGame:
                 
                 if last:
                     if step == -1:
-                        row = max(r-3, 0)
+                        row = max(r-3, -1)
                     else:
                         row = min(r+3, ROWS)
                     moves.update(self.traverse_left(r+step, row, step, color, left-1,skipped=skipped +last))
@@ -151,7 +151,7 @@ class BoardGame:
                 
                 if last:
                     if step == -1:
-                        row = max(r-3, 0)
+                        row = max(r-3, -1)
                     else:
                         row = min(r+3, ROWS)
                     moves.update(self.traverse_left(r+step, row, step, color, right-1,skipped=skipped +last))
@@ -165,13 +165,28 @@ class BoardGame:
             right += 1
         
         return moves
+    def no_valid_moves(self):
+        print("Checking")
+        valid_moves1 = []
+        valid_moves2 = []
+        for piece in self.all_pieces(RED):
+            valid_moves1 += self.get_valid_moves(piece)
+        for piece in self.all_pieces(BROWN):
+            valid_moves2 += self.get_valid_moves(piece)
+        if valid_moves1 and valid_moves2:
+            return None
+        else:
+            if valid_moves1:
+                return RED
+            else:
+                return BROWN
     def winner(self):
         if self.red_piece ==0:
             return BROWN
         elif self.brown_piece == 0:
             return RED
         else:
-            return None
+            return self.no_valid_moves()
     def score(self):
         return self.brown_piece - self.red_piece
     def all_pieces(self,color):
