@@ -38,6 +38,8 @@ class Piece:
         return self.x, self.y
     def make_king(self):
         self.king = True
+    def check_king(self):
+        return self.king 
 
 class BoardGame:
     def __init__(self,first_color_turn):
@@ -70,7 +72,13 @@ class BoardGame:
     def move_piece(self,p,col,row):
         self.board[row][col] = self.board[p.row][p.col]
         self.board[p.row][p.col] = 0
-        if row == 0 or row == ROWS-1:
+        if row == 0:
+            if not p.check_king():
+                self.brown_king +=1
+            p.make_king()
+        elif row == ROWS -1:
+            if not p.check_king():
+                self.red_king +=1
             p.make_king()
         p.move(col,row)
     def remove_piece(self, pieces):
@@ -78,8 +86,12 @@ class BoardGame:
             self.board[piece.row][piece.col] = 0
             if piece != 0:
                 if piece.color == RED:
+                    if piece.check_king():
+                        self.red_king -=1
                     self.red_piece -= 1
                 else:
+                    if piece.check_king():
+                        self.brown_king -=1
                     self.brown_piece -= 1
     def get_piece(self,col,row):
         return self.board[row][col]
@@ -119,7 +131,7 @@ class BoardGame:
                 
                 if last:
                     if step == -1:
-                        row = max(r-3, 0)
+                        row = max(r-3, -1)
                     else:
                         row = min(r+3, ROWS)
                     moves.update(self.traverse_left(r+step, row, step, color, left-1,skipped=skipped +last))
@@ -151,7 +163,7 @@ class BoardGame:
                 
                 if last:
                     if step == -1:
-                        row = max(r-3, 0)
+                        row = max(r-3, -1)
                     else:
                         row = min(r+3, ROWS)
                     moves.update(self.traverse_left(r+step, row, step, color, right-1,skipped=skipped +last))
@@ -165,15 +177,30 @@ class BoardGame:
             right += 1
         
         return moves
+    def no_valid_moves(self):
+        #print("Checking")
+        valid_moves1 = []
+        valid_moves2 = []
+        for piece in self.all_pieces(RED):
+            valid_moves1 += self.get_valid_moves(piece)
+        for piece in self.all_pieces(BROWN):
+            valid_moves2 += self.get_valid_moves(piece)
+        if valid_moves1 and valid_moves2:
+            return None
+        else:
+            if valid_moves1:
+                return RED
+            else:
+                return BROWN
     def winner(self):
         if self.red_piece ==0:
             return BROWN
         elif self.brown_piece == 0:
             return RED
         else:
-            return None
+            return self.no_valid_moves()
     def score(self):
-        return self.brown_piece - self.red_piece
+        return self.brown_piece + 0.5*self.brown_king - self.red_piece - 0.5*self.red_king
     def all_pieces(self,color):
         all_pieces = []
         for r in self.board:
@@ -198,12 +225,11 @@ class Checkers:
             if self.board.get_piece(self.piece_selected.col,self.piece_selected.row) !=0:
                 self.draw_piece_selected(self.piece_selected)
         self.draw_valid_moves(self.valid_move)
+        #print("Red_king:",self.board.red_king)
+        #print("Brown_king:",self.board.brown_king)
+        #print("==========================")
         pygame.display.update()
-    def reset(self,first_color_turn):
-        self.board = BoardGame()
-        self.turn = first_color_turn
-        self.piece_selected = None
-        self.valid_move = {}
+    
     def select_square_or_piece(self,col,row):
         if self.piece_selected:
             res = self.move_piece(col,row)
@@ -276,7 +302,10 @@ def minimaxAlgorithm(currBoard, level,color):
     best_score = -999
     best_board = None
     if level ==0 or currBoard.winner() != None:
-        return currBoard.score(), currBoard
+        if color == BROWN:
+            return currBoard.score(), currBoard
+        else:
+            return - currBoard.score(), currBoard
     for board in get_all_board(currBoard,color):
         if color == RED:
             change_color = BROWN
@@ -295,17 +324,6 @@ def get_piece_from_mouse(pos):
         col = x // PIECE_SIZE
         return col,row
 def show_choice():
-    while True:
-        print("Chọn chế độ chơi:")
-        print("1. Người vs Máy")
-        print("2. Máy Vs Máy ngẫu nhiên")
-        print("3. Thoát")
-        mode = int(input("Chọn số: "))
-        if mode == 3:
-            exit()
-        if mode == 1 or mode == 2:
-            break
-    print("=================================")
     while True:
         print("Chọn nước đi trước hay sau:")
         print("1. Nâu (đi trước)")
@@ -332,9 +350,9 @@ def show_choice():
             exit()
         if level == 1 or level == 2 or level == 3:
             break
-    return mode,first_color,level
+    return first_color,level
 def main():
-    mode ,choose_color, level=show_choice()
+    choose_color, level=show_choice()
     screen = pygame.display.set_mode((800,800))
     screen.fill(WHITE)
     pygame.display.set_caption("Checkers")
@@ -343,32 +361,31 @@ def main():
     clock = pygame.time.Clock()
     while run:
         clock.tick(60)
-        if mode == 1:
-            if choose_color == BROWN:
-                if game.turn == RED:
-                    new_board = minimaxAlgorithm(game.board,3,RED)[1]
-                    game.ai_move(new_board)
-                    
-            else:
-                if game.turn == BROWN:
-                    new_board = minimaxAlgorithm(game.board,3,BROWN)[1]
-                    game.ai_move(new_board)
+        if choose_color == BROWN:
+            if game.turn == RED:
+                new_board = minimaxAlgorithm(game.board,level,RED)[1]
+                game.ai_move(new_board)                    
+        else:
+            if game.turn == BROWN:
+                new_board = minimaxAlgorithm(game.board,level,BROWN)[1]
+                game.ai_move(new_board)
 
-            if game.winner() != None:
-                if game.winner() == RED:
-                    print("RED WINNER")
-                else:
-                    print("BROWN WINNER")
+        if game.winner() != None:
+            if game.winner() == RED:
+                print("RED WINNER")
+            else:
+                print("BROWN WINNER")
+            run = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 run = False
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-                    col,row = get_piece_from_mouse(pos)
-                    game.select_square_or_piece(col,row)
-            game.update()
-        elif mode == 2:
-            pass
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                col,row = get_piece_from_mouse(pos)
+                game.select_square_or_piece(col,row)
+        #print(str(game.board.brown_piece) + "-BROWN- " +str(game.board.brown_king))
+        #print(str(game.board.red_piece) + "-RED- " +str(game.board.red_king))
+        #print("=====================================================")
+        game.update()
     pygame.quit()
 main()
